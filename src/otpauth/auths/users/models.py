@@ -25,7 +25,7 @@ class CustomBaseUserManager(BaseUserManager):
 
 
 class BaseUser(AbstractBaseUser, PermissionsMixin):
-    phone_number = models.CharField(unique=True, verbose_name='phone number',
+    phone_number = models.CharField(max_length=13, unique=True, verbose_name='phone number',
                                     validators=[phone_number_validator]
                                     )
     is_admin = models.BooleanField(default=False)
@@ -49,3 +49,18 @@ class BaseUser(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = 'user'
         verbose_name_plural = 'users'
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(BaseUser, on_delete=models.CASCADE,
+                                related_name='profile', db_index=True)
+    first_name = models.CharField(max_length=128, blank=True,)
+    last_name = models.CharField(max_length=128, blank=True)
+    email = models.EmailField(blank=True, unique=True)
+
+    class Meta:
+        verbose_name = 'profile'
+        verbose_name_plural = 'profiles'
+
+    def __str__(self):
+        return f'{self.first_name}--{self.last_name}--{self.user.phone_number}'

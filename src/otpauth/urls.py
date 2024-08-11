@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
@@ -11,4 +11,6 @@ doc_urlpatterns = [
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/user/', include("otpauth.auths.users.urls")),
+    path('__debug__/', include("debug_toolbar.urls")),
 ]+doc_urlpatterns

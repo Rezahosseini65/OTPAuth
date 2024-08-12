@@ -1,3 +1,4 @@
+from django.contrib.auth import authenticate
 from django.utils import timezone
 
 from rest_framework.views import APIView
@@ -5,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import OTPRequestSerializer, VerifyUserSerializer
+from .serializers import OTPRequestSerializer, VerifyUserSerializer, UserLoginSerializer
 from .models import OTPRequest, BaseUser, FailedAttempt
 from .throttles import PhoneRateThrottle
 
@@ -77,6 +78,35 @@ class VerifyUserView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class UserLoginView(APIView):
+    def post(self, request):
+        ip_address = request.META.get('REMOTE_ADDR')
+
+        if FailedAttempt.is_blocked(ip_address):
+            return Response({'error': 'Too many failed attempts. Please try again after one hour.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        serializer = UserLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            user = authenticate(phone_number=serializer.validated_data['phone_number'],
+                                password=serializer.validated_data['password'])
+
+            if user:
+                # Generate the access and refresh tokens
+                refresh = RefreshToken.for_user(user)
+                access_token = refresh.access_token
+
+                return Response({
+                    'success': 'User verified and updated successfully.',
+                    'access': str(access_token),
+                    'refresh': str(refresh),
+                }, status=status.HTTP_200_OK)
+            else:
+                FailedAttempt.objects.create(ip_address=ip_address,
+                                             phone_number=serializer.validated_data['phone_number'])
+                return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 

@@ -27,3 +27,9 @@ class VerifyUserSerializer(serializers.ModelSerializer):
         if not phone:
             raise serializers.ValidationError({"phone_number": "Phone number is required."})
         return attrs
+
+
+class UserLoginSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(max_length=13,
+                                         validators=[phone_number_validator])
+    password = serializers.CharField(write_only=True)
